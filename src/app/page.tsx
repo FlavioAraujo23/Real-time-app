@@ -1,4 +1,5 @@
 import MaxWidthWrapper from '@/components/MaxWidthWrapper';
+import TopicCreator from './../components/TopicCreator';
 
 export default function Home() {
   return (
@@ -12,6 +13,9 @@ export default function Home() {
             <h1 className="relative leading-snug w-fit tracking-tight text-balance mt-16 font-bold text-gray-900 text-5xl md:text-6xl">
               O que você anda pensando sobre...
             </h1>
+
+            <TopicCreator />
+
           </div>
         </section>
       </MaxWidthWrapper>
