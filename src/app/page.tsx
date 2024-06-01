@@ -4,7 +4,7 @@ import { Star } from 'lucide-react';
 import { redis } from '@/lib/redis';
 
 export default async function Home() {
-  const serverdRequests = await redis.get('served-requests');
+  const servedRequests = await redis.get('served-requests');
   return (
     <main className=" min-h-screen bg-grid-zinc-50">
       <MaxWidthWrapper className="relative pb-24 pt-10 sm:pb-32 lg:pt-24 xl:pt-32 lg:pb-52">
@@ -30,7 +30,7 @@ export default async function Home() {
                 </div>
                 <p>
                   <span className="font-semibold">
-                    {Math.ceil(Number(serverdRequests) / 10) * 10}
+                  {Math.ceil(Number(servedRequests) / 10) * 10}
                   </span>{' '}
                   Requisições ao servidor
                 </p>

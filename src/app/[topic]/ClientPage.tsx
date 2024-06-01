@@ -9,20 +9,57 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useMutation } from '@tanstack/react-query';
+import { submitComment } from '../actions';
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:8080');
 
 interface ClientPageProps {
   topicName: string;
   initialData: { text: string; value: number }[];
-}
-interface WordData {
-  text: string;
-  value: number;
 }
 
 const COLORS = ['#143059', '#2f6b9a', '#82a6c2'];
 const ClientPage = ({ topicName, initialData }: ClientPageProps) => {
   const [words, setWords] = React.useState(initialData);
   const [input, setInput] = React.useState('');
+
+  React.useEffect(() => {
+    socket.emit('join-room', `room:${topicName}`);
+  }, []);
+
+  React.useEffect(() => {
+    socket.on('room-update', (message: string) => {
+      const data = JSON.parse(message) as {
+        text: string;
+        value: number;
+      }[];
+
+      data.map((newWord) => {
+        const isWordAlreadyIncluded = words.some(
+          (word) => word.text === newWord.text
+        );
+
+        if (isWordAlreadyIncluded) {
+          setWords((prev) => {
+            const before = prev.find((word) => word.text === newWord.text);
+            const rest = prev.filter((word) => word.text !== newWord.text);
+
+            return [
+              ...rest,
+              { text: before!.text, value: before!.value + newWord.value },
+            ];
+          });
+        } else if (words.length < 50) {
+          return setWords((prev) => [...prev, newWord]);
+        }
+      });
+    });
+    return () => {
+      socket.off('room-update');
+    };
+  }, [words]);
+
   // o tamanho da font depende de uantas vezes aquela palavra foi escrita
   const fontScale = scaleLog({
     // o primeiro item da array contém os valores minimos que estão sendo retornados no map, e o segundo o maximo
@@ -33,7 +70,9 @@ const ClientPage = ({ topicName, initialData }: ClientPageProps) => {
     range: [10, 100],
   });
 
-
+  const { mutate, isPending } = useMutation({
+    mutationFn: submitComment,
+  });
 
   return (
     <section className="w-full min-h-screen flex flex-col items-center justify-center bg-grid-zinc-50 pb-20">
@@ -44,12 +83,12 @@ const ClientPage = ({ topicName, initialData }: ClientPageProps) => {
         </h1>
         <p className="text-sm">(Atualizado em tempo real)</p>
         <div className="aspect-square max-w-xl flex items-center justify-center">
-          <Wordcloud
+        <Wordcloud
             words={words}
             width={500}
             height={500}
-            fontSize={(data: WordData) => fontScale(data.value)}
-            font={'impact'}
+            fontSize={(data) => fontScale(data.value)}
+            font={"Impact"}
             padding={2}
             spiral="archimedean"
             rotate={0}
@@ -81,7 +120,12 @@ const ClientPage = ({ topicName, initialData }: ClientPageProps) => {
               onChange={({ target }) => setInput(target.value)}
               placeholder={`${topicName} é absolutamente...`}
             />
-            <Button>Compartilhar</Button>
+            <Button
+              disabled={isPending}
+              onClick={() => mutate({ comment: input, topicName })}
+            >
+              Compartilhar
+            </Button>
           </div>
         </div>
       </MaxWidthWrapper>
